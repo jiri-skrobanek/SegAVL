@@ -6,7 +6,6 @@ class Aggregable v where
 data SegAVL k v = Node { key :: k, value :: v, lsub :: SegAVL k v, rsub :: SegAVL k v, height :: Int, agg :: Maybe v } | Empty 
 
 instance (Show k, Show v) => Show (SegAVL k v) where
-    --show _ = "ahoj"
     show Empty = "Empty"
     show tree = "(Node " ++ show (lsub tree) ++ " " ++ show (key tree) ++ ":" ++ show (value tree) ++ " " ++ show (rsub tree) ++ ")"
 
@@ -71,6 +70,11 @@ segAVLRange tree min max = aggregate left $ aggregate center right
 segAVLFind :: (Ord k, Aggregable v) => (SegAVL k v) -> k -> (Maybe v)
 segAVLFind tree k = segAVLRange tree k k
 
+segAVLMember :: (Ord k, Aggregable v) => (SegAVL k v) -> k -> Bool
+segAVLMember tree k = case segAVLFind tree k of 
+    Nothing -> False
+    _ -> True
+
 segAVLBalance :: (Ord k, Aggregable v) => SegAVL k v -> SegAVL k v
 --segAVLBalance = id
 segAVLBalance Empty = Empty
@@ -85,13 +89,44 @@ segAVLToList :: (Ord k, Aggregable v) => SegAVL k v -> [(k,v)]
 segAVLToList Empty = []
 segAVLToList tree = segAVLToList (lsub tree) ++ [(key tree, value tree)] ++ segAVLToList (rsub tree)
 
+segAVLGetMin :: SegAVL k v -> Maybe (k,v)
+segAVLGetMin Empty = Nothing
+segAVLGetMin tree = case segAVLGetMin $ lsub tree of
+    Nothing -> Just (key tree, value tree)
+    Just x -> Just x
+
+segAVLGetMax :: SegAVL k v -> Maybe (k,v)
+segAVLGetMax Empty = Nothing
+segAVLGetMax tree = case segAVLGetMax $ rsub tree of
+    Nothing -> Just (key tree, value tree)
+    Just x -> Just x
+
+segAVLLowerBound :: (Ord k) => SegAVL k v -> k -> Maybe (k,v)
+segAVLLowerBound Empty k = Nothing
+segAVLLowerBound tree k
+    | key tree < k = segAVLLowerBound (rsub tree) k
+    | otherwise = case segAVLLowerBound (lsub tree) k of
+        Nothing -> Just (key tree, value tree)
+        x -> x
+
+segAVLUpperBound :: (Ord k) => SegAVL k v -> k -> Maybe (k,v)
+segAVLUpperBound Empty k = Nothing
+segAVLUpperBound tree k
+    | key tree >= k = segAVLUpperBound (lsub tree) k
+    | otherwise = case segAVLUpperBound (rsub tree) k of
+        Nothing -> Just (key tree, value tree)
+        x -> x
+
 -- Builds a tree from key-value and subtrees
 joinTwo :: (Ord k, Aggregable v) => SegAVL k v -> k -> v -> SegAVL k v -> SegAVL k v
 joinTwo tree1 k v tree2 = Node { key = k, value = v, lsub = tree1, rsub = tree2, height = max (getHeight tree1) (getHeight tree2) + 1, agg = combine3 (getAgg $ tree1) v (getAgg $ tree2) }
 
 rotR tree = joinTwo (joinTwo (lsub tree) (key tree) (value tree) (lsub $ rsub tree)) (key $ rsub tree) (value $ rsub tree) (rsub $ rsub tree)
+
 rotL tree = joinTwo (lsub $ lsub tree) (key $ lsub tree) (value $ lsub tree) (joinTwo (rsub $ lsub tree) (key tree) (value tree) (rsub tree))
+
 rotRL tree = rotR $ joinTwo (lsub tree) (key tree) (value tree) (rotL $ rsub tree)
+
 rotLR tree = rotL $ joinTwo (rotR $ lsub tree) (key tree) (value tree) (rsub tree)
 
 getHalves [] = undefined
