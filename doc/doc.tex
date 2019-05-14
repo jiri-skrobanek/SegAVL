@@ -1,0 +1,95 @@
+\documentclass[a4paper,10pt,openany]{article}
+\usepackage[utf8]{inputenc}
+%\usepackage[czech]{babel}
+\usepackage{geometry}
+\usepackage{tikz,multirow,listingsutf8,multicol,amsmath,amsfonts}
+\lstset{language=haskell,showstringspaces=false,stringstyle=\color{orange},basicstyle=\ttfamily\small,keywordstyle=\color{blue!60!black}, morekeywords={Aggregable,SegAVL}}
+\geometry{left=20mm,right=20mm,top=20mm,bottom=20mm}
+\parindent=0mm
+\parskip=0mm
+
+\begin{document}
+\begin{center}
+\pagenumbering{arabic}
+{\huge \textsc{Segment Trees Haskell Implementation}}\\
+\vspace{10mm} {\large Jiří Škrobánek\footnote[1]{Faculty of Mathematics and Physics, Charles University, {\ttfamily jiri@skrobanek.cz}}}\\
+\vspace{10mm}\today, Prague
+
+\end{center}
+
+\section*{Introduction}
+This document serves as a reference for \texttt{SegmentTree} Haskell module. The module provides an implementation of segment trees usable with any type of keys which implements \texttt{Ord} and can aggregate any associative function of values.
+
+All editing operations take $\mathcal{O}(\log n)$ time on a tree with \textit{n} elements as well as range queries. Insertion and deletion is implemented using AVL-tree balancing algorithms yielding the same $\mathcal{O}(\log n)$ time complexity.
+
+\section*{Example Usage}
+
+In this example we build a tree on pairs of integers, to do this we must first instantiate the aggregation, in this case aggregation is simply addition. 
+
+Firstly we build a tree on integers from 1 to 10. We update the value at 5 by adding 2 to it, lastly we ask for the sum of interval 2 to 8.
+
+\lstinputlisting{../example.hs}
+
+\section*{Complete List of Functionality}
+\begin{lstlisting}
+class Aggregable v where
+aggregate :: (Maybe v) -> (Maybe v) -> (Maybe v)
+\end{lstlisting}
+Values must be an instance of this class.
+\begin{lstlisting}
+data SegAVL k v
+| Node {key::k, value::v, lsub::SegAVL k v, rsub::SegAVL k v, height::Int, agg::Maybe v}
+| Empty 
+\end{lstlisting}
+\subsection*{Functions}
+\begin{itemize}
+\item \begin{lstlisting}
+segAVLBuildFromList :: (Ord k, Aggregable v) => [(k,v)] -> SegAVL k v
+\end{lstlisting}
+This function creates the segment tree from a sorted list of key-value pairs.
+\item \begin{lstlisting}
+segAVLInsertAndBalance :: (Ord k, Aggregable v) => SegAVL k v->k->v-> SegAVL k v
+\end{lstlisting}
+This function inserts the key-value pait into the tree, overwriting old values.
+\item \begin{lstlisting}
+segAVLSetValue :: (Ord k, Aggregable v) => SegAVL k v->k->v->(v->v->v)->SegAVL k v
+\end{lstlisting}
+Similar to the previous function, but takes an extra argument which handles the replacing of old value.
+\item \begin{lstlisting}
+segAVLDelete :: (Ord k, Aggregable v) => SegAVL k v -> k -> SegAVL k v
+\end{lstlisting}
+This function removes the given key from the tree.
+\item \begin{lstlisting}
+segAVLRange :: (Ord k, Aggregable v) => SegAVL k v -> k -> k -> Maybe v
+\end{lstlisting}
+This function return the aggregated value from interval between the second and third parameter.
+\item \begin{lstlisting}
+segAVLFind :: (Ord k, Aggregable v) => SegAVL k v -> k -> Maybe v
+\end{lstlisting}
+Returns the value associated with given key.
+\item \begin{lstlisting}
+segAVLMember :: (Ord k, Aggregable v) => SegAVL k v -> k -> Bool
+\end{lstlisting}
+Return a Boolean determining wheter the key is in the tree.
+\item \begin{lstlisting}
+segAVLToList :: (Ord k, Aggregable v) => SegAVL k v -> [(k,v)]
+\end{lstlisting}
+Produces an ordered set of key-value pairs from the tree.
+\item \begin{lstlisting}
+segAVLGetMin :: SegAVL k v -> Maybe (k,v)
+\end{lstlisting}
+Returns the minimum key-value pair present in the tree.
+\item \begin{lstlisting}
+segAVLGetMax :: SegAVL k v -> Maybe (k,v)
+\end{lstlisting}
+Returns the maximum key-value pair present in the tree.
+\item \begin{lstlisting}
+segAVLLowerBound :: (Ord k) => SegAVL k v -> k -> Maybe (k,v)
+\end{lstlisting}
+Return the key-value pair where the key is the smallest not lesser then the key provided.
+\item \begin{lstlisting}
+segAVLUpperBound :: (Ord k) => SegAVL k v -> k -> Maybe (k,v)
+\end{lstlisting}
+Return the key-value pair where the key is the greatest lesser then the key provided.
+\end{itemize}
+\end{document}

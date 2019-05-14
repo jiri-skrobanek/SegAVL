@@ -38,6 +38,15 @@ segAVLInsertAndBalance tree k v
     where insertIntoLeft = segAVLInsertAndBalance (lsub tree) k v 
           insertIntoRight = segAVLInsertAndBalance (rsub tree) k v
 
+segAVLSetValue :: (Ord k, Aggregable v) => (SegAVL k v) -> k -> v -> (v -> v -> v)-> SegAVL k v
+segAVLSetValue tree k v fn = if segAVLMember tree k then updateValue tree k v fn else segAVLInsertAndBalance tree k v
+
+updateValue :: (Ord k, Aggregable v) => SegAVL k v -> k -> v -> (v->v->v) -> SegAVL k v
+updateValue tree k v fn
+    | key tree == k = joinTwo (lsub tree) (key tree) (fn v (value tree)) (rsub tree)
+    | key tree < k = joinTwo (lsub tree) (key tree) (value tree) (updateValue (rsub tree) k v fn)
+    | otherwise = joinTwo (updateValue (lsub tree) k v fn) (key tree) (value tree) (rsub tree)
+
 segAVLDelete :: (Ord k, Aggregable v) => SegAVL k v -> k -> SegAVL k v
 segAVLDelete Empty _ = Empty
 segAVLDelete tree k
